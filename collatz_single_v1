@@ -1,0 +1,139 @@
+#!/usr/bin/env python3
+
+import sys
+import time
+import os
+import pickle
+import random
+from tqdm import tqdm
+
+sys.set_int_max_str_digits(100000000)  # Increase limit for extreme numbers
+
+CHECKPOINT_DIR = "collatz_checkpoints"
+
+def ensure_checkpoint_dir():
+    if not os.path.exists(CHECKPOINT_DIR):
+        os.makedirs(CHECKPOINT_DIR)
+
+def save_checkpoint(n: int, original_n: int, step_count: int, digit_count: int, max_digits: int):
+    ensure_checkpoint_dir()
+    checkpoint_file = os.path.join(CHECKPOINT_DIR, f"checkpoint_random_{digit_count}digits_latest.pkl")
+    checkpoint_data = {
+        'current_n': n,
+        'original_n': original_n,
+        'step_count': step_count,
+        'digit_count': digit_count,
+        'max_digits': max_digits
+    }
+    try:
+        with open(checkpoint_file, 'wb') as f:
+            pickle.dump(checkpoint_data, f)
+    except Exception as e:
+        print(f"Error saving checkpoint: {e}")
+
+def find_latest_checkpoint(digit_count: int):
+    ensure_checkpoint_dir()
+    checkpoint_file = os.path.join(CHECKPOINT_DIR, f"checkpoint_random_{digit_count}digits_latest.pkl")
+    if not os.path.exists(checkpoint_file):
+        return None
+    try:
+        with open(checkpoint_file, 'rb') as f:
+            return pickle.load(f)
+    except Exception as e:
+        print(f"Error loading checkpoint: {e}")
+        return None
+
+def generate_random_number(digit_count: int) -> int:
+    if digit_count <= 0:
+        raise ValueError("Digit count must be positive")
+    first_digit = random.randint(1, 9)
+    other_digits = [random.randint(0, 9) for _ in range(digit_count - 1)]
+    digits = [first_digit] + other_digits
+    return int(''.join(map(str, digits)))
+
+def calculate_collatz_stats_only(n: int, digit_count: int):
+    checkpoint_data = find_latest_checkpoint(digit_count)
+    if checkpoint_data and checkpoint_data['original_n'] == n:
+        current_n = checkpoint_data['current_n']
+        step_count = checkpoint_data['step_count']
+        max_digits = checkpoint_data.get('max_digits', len(str(n)))
+        print(f"Resuming from checkpoint at step {step_count}")
+    else:
+        current_n = n
+        step_count = 0
+        max_digits = len(str(n))
+        print("Starting fresh calculation")
+
+    batch_size = 100000
+    with tqdm(desc=f"Calculating for {digit_count}-digit number", unit="steps") as pbar:
+        pbar.update(step_count)
+        while current_n != 1:
+            batch_steps = 0
+            while current_n != 1 and batch_steps < batch_size:
+                if current_n % 2 == 0:
+                    current_n = current_n // 2
+                    step_count += 1
+                else:
+                    current_n = (3 * current_n + 1) // 2
+                    step_count += 2
+                batch_steps += 1
+                digits_now = len(str(current_n))
+                if digits_now > max_digits:
+                    max_digits = digits_now
+                pbar.update(1)
+            save_checkpoint(current_n, n, step_count, digit_count, max_digits)
+
+    return step_count, max_digits
+
+def format_time(seconds: float) -> str:
+    if seconds < 60:
+        return f"{seconds:.2f} seconds"
+    elif seconds < 3600:
+        minutes = int(seconds // 60)
+        secs = int(seconds % 60)
+        return f"{minutes} minutes and {secs} seconds"
+    else:
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        return f"{hours} hours, {minutes} minutes and {secs} seconds"
+
+def main():
+    try:
+        print("Collatz Stats-Only Calculator (Optimized for Huge Numbers)")
+        print("-----------------------------------------------------------")
+        digit_count = int(input("Enter the number of digits for the random number: "))
+
+        if digit_count <= 0:
+            print("Digit count must be positive.")
+            return
+
+        if digit_count > 1000000:
+            confirm = input(f"This will generate a {digit_count}-digit number. Continue? (y/n): ")
+            if confirm.lower() != 'y':
+                print("Operation cancelled.")
+                return
+
+        random_number = generate_random_number(digit_count)
+
+        print(f"\nGenerated a random {digit_count}-digit number")
+        print(f"First 10 digits: {str(random_number)[:10]}...")
+        print(f"Last 10 digits: ...{str(random_number)[-10:]}")
+
+        start = time.time()
+        steps, max_digits = calculate_collatz_stats_only(random_number, digit_count)
+        elapsed = format_time(time.time() - start)
+
+        print("\nResults Summary:")
+        print(f"Total steps to reach 1: {steps}")
+        print(f"Maximum number length during sequence: {max_digits} digits")
+        print(f"Growth ratio: {max_digits / digit_count:.2f}x")
+        print(f"Time elapsed: {elapsed}")
+
+    except KeyboardInterrupt:
+        print("\nInterrupted. Progress saved.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+if __name__ == "__main__":
+    main()
