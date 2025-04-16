@@ -1,4 +1,3 @@
-```python
 # Collatz Conjecture Visualization and Analysis
 
 This project provides a Python implementation of the Collatz Conjecture, including visualization of the sequence, an iterative solution, and an optimized solution using memoization.
@@ -15,6 +14,5 @@ This project provides a Python implementation of the Collatz Conjecture, includi
 - Matplotlib
 - tqdm (for progress bar)
 
-Install the required library using pip:
-
-```
+Install the required library using 
+```pip install -r requirements.txt```
