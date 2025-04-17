@@ -9,7 +9,7 @@ def collatz_steps(start):
         count += 1
     return count
 
-def plot_steps_summary(start=100_000_000, end=900_000_000):
+def plot_steps_summary(start=1, end=500000):
     numbers = list(range(start, end + 1))
     
     print(f"Calculating Collatz steps for numbers {start:,} to {end:,}...")
@@ -40,7 +40,7 @@ def plot_steps_summary(start=100_000_000, end=900_000_000):
     print(f"📈 Maximum steps to reach 1: {max_steps}")
 
 def main():
-    plot_steps_summary(100_000_000, 900_000_000)
+    plot_steps_summary(1, 500000)
 
 if __name__ == "__main__":
     main()
